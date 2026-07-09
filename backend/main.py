@@ -10,18 +10,22 @@ import json
 import asyncio
 
 from . import storage
+from .config import CORS_ORIGINS
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
 
 app = FastAPI(title="LLM Council API")
 
-# Enable CORS for local development
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Only needed when the frontend is served from a different origin than the API, as
+# under `npm run dev`. In the container both sit behind one reverse proxy, so
+# CORS_ORIGINS is empty and no middleware is installed.
+if CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 class CreateConversationRequest(BaseModel):

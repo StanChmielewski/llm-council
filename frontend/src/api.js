@@ -2,7 +2,10 @@
  * API client for the LLM Council backend.
  */
 
-const API_BASE = 'http://localhost:8001';
+// Empty by default: the built frontend is served from the same origin as the API,
+// so relative paths just work and no CORS is involved. `npm run dev` sets
+// VITE_API_BASE to reach a backend running on another port.
+const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 
 export const api = {
   /**

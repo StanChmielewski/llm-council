@@ -1,40 +1,42 @@
-"""OpenRouter API client for making LLM requests."""
+"""OpenAI-compatible API client for making LLM requests."""
 
 import httpx
 from typing import List, Dict, Any, Optional
-from .config import OPENROUTER_API_KEY, OPENROUTER_API_URL
+from .config import resolve_model, REQUEST_TIMEOUT
 
 
 async def query_model(
     model: str,
     messages: List[Dict[str, str]],
-    timeout: float = 120.0
+    timeout: float = REQUEST_TIMEOUT
 ) -> Optional[Dict[str, Any]]:
     """
-    Query a single model via OpenRouter API.
+    Query a single model on whichever provider serves it.
 
     Args:
-        model: OpenRouter model identifier (e.g., "openai/gpt-4o")
+        model: Council model id (e.g. "z-ai/glm-5.2", "meridian/claude-opus-4-8")
         messages: List of message dicts with 'role' and 'content'
         timeout: Request timeout in seconds
 
     Returns:
         Response dict with 'content' and optional 'reasoning_details', or None if failed
     """
+    base_url, api_key, upstream_model = resolve_model(model)
+
     headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
 
     payload = {
-        "model": model,
+        "model": upstream_model,
         "messages": messages,
     }
 
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(
-                OPENROUTER_API_URL,
+                f"{base_url}/chat/completions",
                 headers=headers,
                 json=payload
             )
@@ -61,7 +63,7 @@ async def query_models_parallel(
     Query multiple models in parallel.
 
     Args:
-        models: List of OpenRouter model identifiers
+        models: List of council model ids
         messages: List of message dicts to send to each model
 
     Returns:
