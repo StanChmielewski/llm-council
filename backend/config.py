@@ -13,7 +13,10 @@ load_dotenv()
 #   openwebui - a gateway aggregating hosted models, billed per token. Model ids are
 #               OpenRouter-style ("vendor/model").
 #
-# Everything stays on the LAN; no request leaves the network.
+# Only the *endpoints* are on the LAN. Meridian terminates at Anthropic; the gateway
+# forwards to whichever vendor owns the model. A council prompt therefore leaves the
+# network, and any member outside meridian/ sends it to a third party. Do not put
+# secrets, personal data, or client material into a council question.
 PROVIDERS = {
     "meridian": {
         "base_url": os.getenv("MERIDIAN_BASE_URL", "http://meridian:3456/v1"),
