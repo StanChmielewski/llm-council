@@ -6,17 +6,20 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-# Providers. The council is served by two OpenAI-compatible endpoints on the LAN:
+# Providers. The council is served by three OpenAI-compatible endpoints:
 #
-#   meridian  - a passthrough proxy in front of a flat-rate Claude subscription, so
-#               Claude tokens cost nothing at the margin. Model ids use hyphens.
-#   openwebui - a gateway aggregating hosted models, billed per token. Model ids are
-#               OpenRouter-style ("vendor/model").
+#   meridian   - a passthrough proxy in front of a flat-rate Claude subscription, so
+#                Claude tokens cost nothing at the margin. Model ids use hyphens.
+#   openwebui  - a LAN gateway aggregating hosted models, billed per token. Model ids
+#                are OpenRouter-style ("vendor/model").
+#   openrouter - openrouter.ai directly, billed per token. Carries frontier models the
+#                gateway lacks (e.g. openai/gpt-5.6-sol) and sidesteps the gateway's
+#                exhausted per-vendor keys.
 #
-# Only the *endpoints* are on the LAN. Meridian terminates at Anthropic; the gateway
-# forwards to whichever vendor owns the model. A council prompt therefore leaves the
-# network, and any member outside meridian/ sends it to a third party. Do not put
-# secrets, personal data, or client material into a council question.
+# Meridian terminates at Anthropic; the other two forward to whichever vendor owns the
+# model. A council prompt therefore leaves the network, and any member outside
+# meridian/ sends it to a third party. Do not put secrets, personal data, or client
+# material into a council question.
 PROVIDERS = {
     "meridian": {
         "base_url": os.getenv("MERIDIAN_BASE_URL", "http://meridian:3456/v1"),
@@ -28,32 +31,43 @@ PROVIDERS = {
         ),
         "api_key": os.getenv("OPENWEBUI_API_KEY"),
     },
+    "openrouter": {
+        "base_url": os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
+        "api_key": os.getenv("OPENROUTER_API_KEY"),
+    },
 }
 
-# A model id may carry a "meridian/" prefix to pin it to the zero-marginal-cost Claude
-# path. Anything unprefixed goes to the gateway, whose ids already contain a slash.
+# A model id may carry a "meridian/" or "openrouter/" prefix to pin it to that
+# provider. Anything unprefixed goes to the gateway, whose ids already contain a slash.
 MERIDIAN_PREFIX = "meridian/"
+OPENROUTER_PREFIX = "openrouter/"
 DEFAULT_PROVIDER = "openwebui"
 
 
 def resolve_model(model: str) -> tuple[str, str, str]:
     """Map a council model id to (base_url, api_key, upstream_model_name)."""
-    if model.startswith(MERIDIAN_PREFIX):
-        provider = PROVIDERS["meridian"]
-        return provider["base_url"], provider["api_key"], model[len(MERIDIAN_PREFIX) :]
+    for prefix, name in (
+        (MERIDIAN_PREFIX, "meridian"),
+        (OPENROUTER_PREFIX, "openrouter"),
+    ):
+        if model.startswith(prefix):
+            provider = PROVIDERS[name]
+            return provider["base_url"], provider["api_key"], model[len(prefix) :]
 
     provider = PROVIDERS[DEFAULT_PROVIDER]
     return provider["base_url"], provider["api_key"], model
 
 
-# Council members. Deliberately drawn from three different model families: members
+# Council members. Deliberately drawn from four different model families: members
 # rank each other in stage 2, and models tend to agree with their own siblings, which
-# makes a same-family panel's peer review much less informative.
+# makes a same-family panel's peer review much less informative. Fable 5 was dropped
+# as a member (it chairs; as a raw API member it produced a one-line non-answer in
+# run #3) in favour of a fourth family via OpenRouter.
 COUNCIL_MODELS = [
-    "meridian/claude-fable-5",
     "meridian/claude-opus-4-8",
-    "gpt-5.5",
-    "deepseek/deepseek-v4-pro",
+    "openrouter/openai/gpt-5.6-sol",
+    "openrouter/google/gemini-3.1-pro-preview",
+    "openrouter/deepseek/deepseek-v4-pro",
 ]
 
 # Chairman model - synthesizes final response
