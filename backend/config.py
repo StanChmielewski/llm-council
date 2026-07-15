@@ -50,9 +50,9 @@ def resolve_model(model: str) -> tuple[str, str, str]:
 # rank each other in stage 2, and models tend to agree with their own siblings, which
 # makes a same-family panel's peer review much less informative.
 COUNCIL_MODELS = [
+    "meridian/claude-fable-5",
     "meridian/claude-opus-4-8",
-    "meridian/claude-sonnet-4-6",
-    "z-ai/glm-5.2",
+    "gpt-5.5",
     "deepseek/deepseek-v4-pro",
 ]
 
