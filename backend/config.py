@@ -67,7 +67,7 @@ COUNCIL_MODELS = [
     "meridian/claude-opus-4-8",
     "openrouter/openai/gpt-5.6-sol",
     "openrouter/google/gemini-3.1-pro-preview",
-    "openrouter/deepseek/deepseek-v4-pro",
+    "openrouter/moonshotai/kimi-k3",
 ]
 
 # Chairman model - synthesizes final response
