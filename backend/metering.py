@@ -9,6 +9,8 @@ from typing import Any
 
 def _provider(model: str) -> str:
     prefix = model.split("/", 1)[0].lower() if "/" in model else "anthropic"
+    if prefix == "meridian":
+        return "anthropic"
     return {
         "anthropic": "anthropic",
         "openai": "openai",
@@ -91,7 +93,7 @@ def record_call(
                         input_tokens,
                         int((time.monotonic() - started_at) * 1000),
                         type(error).__name__ if error else None,
-                        os.getenv("LLM_SUBSCRIPTION_ID", ""),
+                        os.getenv("LLM_SUBSCRIPTION_ID", "") if gateway == "meridian" else "",
                     ),
                 )
     except Exception:
