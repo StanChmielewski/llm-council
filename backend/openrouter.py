@@ -1,8 +1,11 @@
 """OpenAI-compatible API client for making LLM requests."""
 
-import httpx
 from typing import List, Dict, Any, Optional
+
+import httpx
+
 from .config import resolve_model, REQUEST_TIMEOUT
+from .metering import record_call
 
 
 async def query_model(
@@ -34,6 +37,7 @@ async def query_model(
     }
 
     try:
+        started_at = __import__("time").monotonic()
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(
                 f"{base_url}/chat/completions",
@@ -45,12 +49,28 @@ async def query_model(
             data = response.json()
             message = data['choices'][0]['message']
 
-            return {
+            result = {
                 'content': message.get('content'),
                 'reasoning_details': message.get('reasoning_details')
             }
+            record_call(
+                model=model,
+                base_url=base_url,
+                task="council_query",
+                response=data,
+                started_at=started_at,
+            )
+            return result
 
     except Exception as e:
+        record_call(
+            model=model,
+            base_url=base_url,
+            task="council_query",
+            response=None,
+            started_at=locals().get("started_at", 0),
+            error=e,
+        )
         print(f"Error querying model {model}: {e}")
         return None
 
